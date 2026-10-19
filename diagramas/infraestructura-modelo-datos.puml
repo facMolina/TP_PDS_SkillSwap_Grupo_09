@@ -1,0 +1,162 @@
+@startuml
+skinparam backgroundColor white
+skinparam classAttributeIconSize 0
+skinparam shadowing false
+hide empty members
+skinparam monochrome true
+skinparam defaultFontName Segoe UI
+skinparam defaultFontSize 12
+skinparam roundCorner 0
+skinparam ArrowColor black
+skinparam ClassBorderColor black
+skinparam ClassBackgroundColor white
+
+title Infraestructura - Modelo de datos
+
+hide circle
+skinparam linetype polyline
+
+entity nodo_catalogo {
+  * id : BIGINT <<PK>>
+  --
+  * tipo : VARCHAR
+  * nombre : VARCHAR
+  padre_id : BIGINT <<FK>>
+}
+entity perfil {
+  * id : BIGINT <<PK>>
+  --
+  * usuario_id : VARCHAR <<UK>>
+  * tipo : VARCHAR
+  * nombre_visible : VARCHAR
+  * zona_horaria : VARCHAR
+  * canal_preferido : VARCHAR
+  * suma_puntajes : BIGINT
+  * cantidad_calificaciones : INT
+  * estado : VARCHAR
+  * version : BIGINT
+}
+entity perfil_habilidad {
+  * perfil_id : BIGINT <<FK>>
+  * habilidad_id : BIGINT <<FK>>
+}
+entity perfil_interes {
+  * perfil_id : BIGINT <<FK>>
+  * habilidad_id : BIGINT <<FK>>
+}
+entity perfil_disponibilidad {
+  * perfil_id : BIGINT <<FK>>
+  * orden : INT
+  --
+  * inicio : DATETIME
+  * fin : DATETIME
+}
+entity billetera {
+  * id : BIGINT <<PK>>
+  --
+  * usuario_id : VARCHAR <<UK>>
+  * saldo : BIGINT
+  * version : BIGINT
+}
+entity movimiento_credito {
+  * id : BIGINT <<PK>>
+  --
+  * billetera_id : BIGINT <<FK>>
+  * tipo : VARCHAR
+  * monto : BIGINT
+  * saldo_resultante : BIGINT
+  * fecha : DATETIME
+}
+entity publicacion {
+  * id : BIGINT <<PK>>
+  --
+  * autor_id : VARCHAR
+  * tipo : VARCHAR
+  categoria_id : BIGINT <<FK>>
+  * cupo : INT
+  * cupos_tomados : INT
+  precio_base : BIGINT
+  * estado : VARCHAR
+  * version : BIGINT
+}
+entity publicacion_etiqueta {
+  * publicacion_id : BIGINT <<FK>>
+  * habilidad_id : BIGINT <<FK>>
+}
+entity franja_disponible {
+  * publicacion_id : BIGINT <<FK>>
+  * orden : INT
+  --
+  * inicio : DATETIME
+  * fin : DATETIME
+  * ocupada : BOOLEAN
+}
+entity promocion {
+  * publicacion_id : BIGINT <<FK>>
+  * orden : INT
+  --
+  * tipo : VARCHAR
+  porcentaje : INT
+  monto : BIGINT
+}
+entity transicion_publicacion {
+  * publicacion_id : BIGINT <<FK>>
+  * orden : INT
+  --
+  * fecha : DATETIME
+  * origen : VARCHAR
+  * destino : VARCHAR
+}
+entity contratacion {
+  * id : BIGINT <<PK>>
+  --
+  * publicacion_id : BIGINT <<FK>>
+  * cliente_id : VARCHAR
+  * proveedor_id : VARCHAR
+  * precio_acordado : BIGINT
+  * monto_retenido : BIGINT
+  * estado : VARCHAR
+  * version : BIGINT
+}
+entity transicion_contratacion {
+  * contratacion_id : BIGINT <<FK>>
+  * orden : INT
+  --
+  * fecha : DATETIME
+  * origen : VARCHAR
+  * destino : VARCHAR
+}
+entity calificacion {
+  * id : BIGINT <<PK>>
+  --
+  * contratacion_id : BIGINT <<FK>>
+  * autor_id : VARCHAR
+  * receptor_id : VARCHAR
+  * puntaje : INT
+}
+entity notificacion {
+  * id : BIGINT <<PK>>
+  --
+  * destinatario_id : VARCHAR
+  * tipo : VARCHAR
+  * leida : BOOLEAN
+}
+
+nodo_catalogo }o--o| nodo_catalogo
+perfil ||--o{ perfil_habilidad
+perfil ||--o{ perfil_interes
+perfil ||--o{ perfil_disponibilidad
+nodo_catalogo ||--o{ perfil_habilidad
+nodo_catalogo ||--o{ perfil_interes
+billetera ||--o{ movimiento_credito
+publicacion }o--o| nodo_catalogo
+publicacion ||--o{ publicacion_etiqueta
+nodo_catalogo ||--o{ publicacion_etiqueta
+publicacion ||--o{ franja_disponible
+publicacion ||--o{ promocion
+publicacion ||--o{ transicion_publicacion
+publicacion ||--o{ contratacion
+contratacion ||--o{ transicion_contratacion
+contratacion ||--o{ calificacion
+
+@enduml

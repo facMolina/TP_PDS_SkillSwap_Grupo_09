@@ -1,0 +1,182 @@
+@startuml
+skinparam backgroundColor white
+skinparam classAttributeIconSize 0
+skinparam linetype ortho
+left to right direction
+skinparam shadowing false
+hide empty members
+skinparam monochrome true
+skinparam defaultFontName Segoe UI
+skinparam defaultFontSize 12
+skinparam roundCorner 0
+skinparam ArrowColor black
+skinparam ClassBorderColor black
+skinparam ClassBackgroundColor white
+
+title Dominio - Publicaciones y estados
+
+enum TipoPublicacion {
+  MENTORIA
+  SERVICIO
+  DESAFIO
+}
+enum Modalidad {
+  REMOTA
+  PRESENCIAL
+}
+enum TipoPoliticaCancelacion {
+  FLEXIBLE
+  ESTRICTA
+}
+class Publicacion {
+  -id: Long
+  -autorId: UsuarioId
+  -tipo: TipoPublicacion
+  -titulo: String
+  -descripcion: String
+  -categoria: Categoria
+  -modalidad: Modalidad
+  -duracionMinutos: int
+  -cupo: int
+  -cuposTomados: int
+  -precioBase: SkillCoins
+  -etiquetas: Set<Habilidad>
+  -franjas: List<FranjaDisponible>
+  -promociones: List<Promocion>
+  -tipoPoliticaCancelacion: TipoPoliticaCancelacion
+  -estadoActual: EstadoPublicacion
+  -historial: HistorialTransiciones
+  -fechaCreacion: Instant
+  --
+  +editar(datos: DatosPublicacion): void
+  +agregarFranja(franja: FranjaHoraria): void
+  +agregarPromocion(promocion: Promocion): void
+  +publicar(ctx: ContextoAccion): void
+  +pausar(ctx: ContextoAccion): void
+  +reanudar(ctx: ContextoAccion): void
+  +cerrar(ctx: ContextoAccion): void
+  +cancelar(ctx: ContextoAccion, motivo: String): void
+  +reservarCupo(franja: FranjaHoraria): void
+  +liberarCupo(franja: FranjaHoraria): void
+  +admiteSolicitudes(): boolean
+  +esVisiblePara(usuario: UsuarioId): boolean
+  +calcularPrecio(ahora: Instant): SkillCoins
+  +cambiarEstado(nuevo: EstadoPublicacion, ctx: ContextoAccion, motivo: String): void
+}
+class FranjaDisponible {
+  -franja: FranjaHoraria
+  -ocupada: boolean
+  --
+  +reservar(): void
+  +liberar(): void
+  +estaOcupada(): boolean
+  +coincideCon(otra: FranjaHoraria): boolean
+}
+class TransicionEstado {
+  -fecha: Instant
+  -actorId: UsuarioId
+  -origen: String
+  -destino: String
+  -motivo: String
+}
+class HistorialTransiciones {
+  -transiciones: List<TransicionEstado>
+  --
+  +registrar(transicion: TransicionEstado): void
+  +getTransiciones(): List<TransicionEstado>
+}
+interface EstadoPublicacion {
+  +getNombre(): String
+  +permiteEdicion(): boolean
+  +admiteSolicitudes(): boolean
+  +esVisiblePara(publicacion: Publicacion, usuario: UsuarioId): boolean
+  +publicar(publicacion: Publicacion, ctx: ContextoAccion): void
+  +pausar(publicacion: Publicacion, ctx: ContextoAccion): void
+  +reanudar(publicacion: Publicacion, ctx: ContextoAccion): void
+  +cerrar(publicacion: Publicacion, ctx: ContextoAccion): void
+  +cancelar(publicacion: Publicacion, ctx: ContextoAccion, motivo: String): void
+}
+abstract class EstadoPublicacionBase {
+  +permiteEdicion(): boolean
+  +admiteSolicitudes(): boolean
+  +esVisiblePara(publicacion: Publicacion, usuario: UsuarioId): boolean
+  +publicar(publicacion: Publicacion, ctx: ContextoAccion): void
+  +pausar(publicacion: Publicacion, ctx: ContextoAccion): void
+  +reanudar(publicacion: Publicacion, ctx: ContextoAccion): void
+  +cerrar(publicacion: Publicacion, ctx: ContextoAccion): void
+  +cancelar(publicacion: Publicacion, ctx: ContextoAccion, motivo: String): void
+}
+class EstadoBorrador {
+  +getNombre(): String
+  +permiteEdicion(): boolean
+  +publicar(publicacion: Publicacion, ctx: ContextoAccion): void
+}
+class EstadoPublicada {
+  +getNombre(): String
+  +admiteSolicitudes(): boolean
+  +esVisiblePara(publicacion: Publicacion, usuario: UsuarioId): boolean
+  +pausar(publicacion: Publicacion, ctx: ContextoAccion): void
+  +cerrar(publicacion: Publicacion, ctx: ContextoAccion): void
+  +cancelar(publicacion: Publicacion, ctx: ContextoAccion, motivo: String): void
+}
+class EstadoPausada {
+  +getNombre(): String
+  +reanudar(publicacion: Publicacion, ctx: ContextoAccion): void
+  +cerrar(publicacion: Publicacion, ctx: ContextoAccion): void
+  +cancelar(publicacion: Publicacion, ctx: ContextoAccion, motivo: String): void
+}
+class EstadoCerrada {
+  +getNombre(): String
+}
+class EstadoCancelada {
+  +getNombre(): String
+}
+class ContextoAccion {
+  -actor: UsuarioId
+  -ahora: Instant
+  --
+  +getActor(): UsuarioId
+  +getAhora(): Instant
+}
+
+class DatosPublicacion {
+  -tipo: TipoPublicacion
+  -titulo: String
+  -descripcion: String
+  -categoria: Categoria
+  -modalidad: Modalidad
+  -duracionMinutos: int
+  -cupo: int
+  -precioBase: SkillCoins
+  -etiquetas: Set<Habilidad>
+  -tipoPoliticaCancelacion: TipoPoliticaCancelacion
+}
+
+class Categoria
+class Habilidad
+class Promocion
+class Precio
+
+Publicacion --> "1" TipoPublicacion
+Publicacion --> "1" Modalidad
+Publicacion --> "1" TipoPoliticaCancelacion
+Publicacion --> "1" Categoria
+Publicacion --> "0..*" Habilidad : etiquetas
+Publicacion *-- "1..*" FranjaDisponible
+Publicacion o-- "0..*" Promocion
+Publicacion *-- "1" HistorialTransiciones
+Publicacion --> "1" EstadoPublicacion : estadoActual
+Publicacion ..> Precio : calcula
+Publicacion ..> DatosPublicacion : edita con
+HistorialTransiciones *-- "0..*" TransicionEstado
+
+EstadoPublicacion <|.. EstadoPublicacionBase
+EstadoPublicacionBase <|-- EstadoBorrador
+EstadoPublicacionBase <|-- EstadoPublicada
+EstadoPublicacionBase <|-- EstadoPausada
+EstadoPublicacionBase <|-- EstadoCerrada
+EstadoPublicacionBase <|-- EstadoCancelada
+
+Publicacion ..> ContextoAccion : recibe
+note right of EstadoPublicacion : State
+@enduml

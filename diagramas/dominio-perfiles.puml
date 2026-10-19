@@ -1,0 +1,172 @@
+@startuml
+skinparam backgroundColor white
+skinparam classAttributeIconSize 0
+skinparam linetype ortho
+skinparam shadowing false
+hide empty members
+skinparam monochrome true
+skinparam defaultFontName Segoe UI
+skinparam defaultFontSize 12
+skinparam roundCorner 0
+skinparam ArrowColor black
+skinparam ClassBorderColor black
+skinparam ClassBackgroundColor white
+
+title Dominio - Perfiles, billetera y catálogo
+
+enum TipoPerfil {
+  PERSONA
+  ORGANIZACION
+}
+enum EstadoPerfil {
+  ACTIVO
+  BAJA
+}
+enum CanalPreferido {
+  EMAIL
+  PUSH
+  INTERNA
+}
+enum TipoMovimiento {
+  SALDO_INICIAL
+  PAGO
+  COBRO
+  REINTEGRO
+}
+
+class UsuarioId {
+  -valor: String
+  --
+  +getValor(): String
+}
+class SkillCoins {
+  -monto: long
+  --
+  +sumar(otro: SkillCoins): SkillCoins
+  +restar(otro: SkillCoins): SkillCoins
+  +porcentaje(valor: int): SkillCoins
+  +esMenorQue(otro: SkillCoins): boolean
+  +getMonto(): long
+}
+class Puntaje {
+  -valor: int
+  --
+  +getValor(): int
+}
+class Reputacion {
+  -promedio: double
+  -cantidad: int
+  --
+  +incorporar(puntaje: Puntaje): Reputacion
+  +getPromedio(): double
+  +getCantidad(): int
+}
+class FranjaHoraria {
+  -inicio: Instant
+  -fin: Instant
+  --
+  +seSolapaCon(otra: FranjaHoraria): boolean
+  +contiene(otra: FranjaHoraria): boolean
+  +duracion(): Duration
+}
+
+class Perfil {
+  -id: Long
+  -usuarioId: UsuarioId
+  -tipo: TipoPerfil
+  -nombreVisible: String
+  -biografia: String
+  -zonaHoraria: ZoneId
+  -email: String
+  -canalPreferido: CanalPreferido
+  -habilidades: Set<Habilidad>
+  -intereses: Set<Habilidad>
+  -disponibilidad: List<FranjaHoraria>
+  -reputacion: Reputacion
+  -estado: EstadoPerfil
+  -fechaBaja: Instant
+  --
+  +actualizarDatos(nombreVisible: String, biografia: String, zonaHoraria: ZoneId): void
+  +definirHabilidades(habilidades: Set<Habilidad>): void
+  +definirIntereses(intereses: Set<Habilidad>): void
+  +definirDisponibilidad(franjas: List<FranjaHoraria>): void
+  +elegirCanal(canal: CanalPreferido): void
+  +recibirCalificacion(puntaje: Puntaje): void
+  +darDeBaja(ahora: Instant): void
+  +estaActivo(): boolean
+  +puedePublicar(tipo: TipoPublicacion): boolean
+}
+
+class Billetera {
+  -id: Long
+  -usuarioId: UsuarioId
+  -saldo: SkillCoins
+  --
+  +acreditar(monto: SkillCoins, tipo: TipoMovimiento, referencia: String): MovimientoCreditos
+  +debitar(monto: SkillCoins, tipo: TipoMovimiento, referencia: String): MovimientoCreditos
+  +tieneSaldoPara(monto: SkillCoins): boolean
+}
+class MovimientoCreditos {
+  -id: Long
+  -tipo: TipoMovimiento
+  -monto: SkillCoins
+  -saldoResultante: SkillCoins
+  -referencia: String
+  -fecha: Instant
+}
+
+interface NodoCatalogo {
+  +id(): Long
+  +nombre(): String
+  +incluye(nodo: NodoCatalogo): boolean
+  +idsIncluidos(): Set<Long>
+}
+class Categoria {
+  -id: Long
+  -nombre: String
+  -hijos: List<NodoCatalogo>
+  --
+  +agregar(nodo: NodoCatalogo): void
+  +quitar(nodo: NodoCatalogo): void
+  +id(): Long
+  +nombre(): String
+  +incluye(nodo: NodoCatalogo): boolean
+  +idsIncluidos(): Set<Long>
+}
+class Habilidad {
+  -id: Long
+  -nombre: String
+  --
+  +id(): Long
+  +nombre(): String
+  +incluye(nodo: NodoCatalogo): boolean
+  +idsIncluidos(): Set<Long>
+}
+
+Perfil --> "1" UsuarioId
+Perfil --> "1" TipoPerfil
+Perfil --> "1" EstadoPerfil
+Perfil --> "1" CanalPreferido
+Perfil *-- "1" Reputacion
+Perfil *-- "0..*" FranjaHoraria : disponibilidad
+Perfil --> "0..*" Habilidad : habilidades
+Perfil --> "0..*" Habilidad : intereses
+Reputacion ..> Puntaje
+
+Billetera --> "1" UsuarioId
+Billetera --> "1" SkillCoins : saldo
+Billetera *-- "0..*" MovimientoCreditos
+MovimientoCreditos --> "1" TipoMovimiento
+MovimientoCreditos --> "1" SkillCoins : monto
+
+NodoCatalogo <|.. Categoria
+NodoCatalogo <|.. Habilidad
+Categoria o-- "0..*" NodoCatalogo : hijos
+
+note right of NodoCatalogo
+  Composite
+  Componente: NodoCatalogo
+  Compuesto: Categoria
+  Hoja: Habilidad
+end note
+@enduml

@@ -1,0 +1,139 @@
+@startuml
+skinparam backgroundColor white
+skinparam classAttributeIconSize 0
+skinparam linetype ortho
+skinparam shadowing false
+hide empty members
+skinparam monochrome true
+skinparam defaultFontName Segoe UI
+skinparam defaultFontSize 12
+skinparam roundCorner 0
+skinparam ArrowColor black
+skinparam ClassBorderColor black
+skinparam ClassBackgroundColor white
+
+title Dominio - Precio, políticas de cancelación y recomendación
+
+interface Precio {
+  +calcular(): SkillCoins
+}
+class PrecioBase {
+  -monto: SkillCoins
+  --
+  +calcular(): SkillCoins
+}
+abstract class PrecioDecorador {
+  #precio: Precio
+  --
+  +calcular(): SkillCoins
+}
+class DescuentoPorcentual {
+  -porcentaje: int
+  --
+  +calcular(): SkillCoins
+}
+class DescuentoFijo {
+  -monto: SkillCoins
+  --
+  +calcular(): SkillCoins
+}
+abstract class Promocion {
+  -id: Long
+  -vigenteDesde: Instant
+  -vigenteHasta: Instant
+  --
+  +estaVigente(ahora: Instant): boolean
+  +decorar(precio: Precio): Precio
+}
+class PromocionPorcentual {
+  -porcentaje: int
+  --
+  +decorar(precio: Precio): Precio
+}
+class PromocionMontoFijo {
+  -monto: SkillCoins
+  --
+  +decorar(precio: Precio): Precio
+}
+interface PoliticaCancelacion {
+  +calcularReintegro(montoPagado: SkillCoins, anticipacion: Duration): SkillCoins
+}
+class PoliticaFlexible {
+  -tramos: TramosReintegro
+  --
+  +calcularReintegro(montoPagado: SkillCoins, anticipacion: Duration): SkillCoins
+}
+class PoliticaEstricta {
+  -tramos: TramosReintegro
+  --
+  +calcularReintegro(montoPagado: SkillCoins, anticipacion: Duration): SkillCoins
+}
+class TramosReintegro {
+  -tramos: List<TramoReintegro>
+  --
+  +porcentajePara(anticipacion: Duration): int
+}
+class TramoReintegro {
+  -anticipacionMinima: Duration
+  -porcentaje: int
+}
+class FabricaPoliticaCancelacion {
+  --
+  +crear(tipo: TipoPoliticaCancelacion): PoliticaCancelacion
+}
+interface EstrategiaRecomendacion {
+  +puntuar(perfil: Perfil, candidata: CandidataRecomendacion): double
+}
+class RecomendacionPorAfinidad {
+  +puntuar(perfil: Perfil, candidata: CandidataRecomendacion): double
+}
+class RecomendacionPorPopularidad {
+  +puntuar(perfil: Perfil, candidata: CandidataRecomendacion): double
+}
+class CandidataRecomendacion {
+  -publicacionId: Long
+  -etiquetas: Set<Habilidad>
+  -solicitudesRecientes: int
+  -reputacionAutor: double
+  --
+  +getPublicacionId(): Long
+  +getEtiquetas(): Set<Habilidad>
+  +getSolicitudesRecientes(): int
+  +getReputacionAutor(): double
+}
+enum TipoPoliticaCancelacion {
+  FLEXIBLE
+  ESTRICTA
+}
+class Perfil
+class Habilidad
+
+Precio <|.. PrecioBase
+Precio <|.. PrecioDecorador
+PrecioDecorador o-- "1" Precio
+PrecioDecorador <|-- DescuentoPorcentual
+PrecioDecorador <|-- DescuentoFijo
+Promocion <|-- PromocionPorcentual
+Promocion <|-- PromocionMontoFijo
+PromocionPorcentual ..> DescuentoPorcentual : crea
+PromocionMontoFijo ..> DescuentoFijo : crea
+
+PoliticaCancelacion <|.. PoliticaFlexible
+PoliticaCancelacion <|.. PoliticaEstricta
+PoliticaFlexible --> "1" TramosReintegro
+PoliticaEstricta --> "1" TramosReintegro
+TramosReintegro *-- "1..*" TramoReintegro
+FabricaPoliticaCancelacion ..> PoliticaCancelacion : crea
+FabricaPoliticaCancelacion ..> TipoPoliticaCancelacion
+
+EstrategiaRecomendacion <|.. RecomendacionPorAfinidad
+EstrategiaRecomendacion <|.. RecomendacionPorPopularidad
+EstrategiaRecomendacion ..> Perfil
+EstrategiaRecomendacion ..> CandidataRecomendacion
+CandidataRecomendacion --> "0..*" Habilidad : etiquetas
+
+note right of Precio : Decorator
+note right of PoliticaCancelacion : Strategy
+note right of EstrategiaRecomendacion : Strategy
+note right of FabricaPoliticaCancelacion : Simple Factory
+@enduml

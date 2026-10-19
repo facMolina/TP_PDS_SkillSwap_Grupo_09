@@ -1,0 +1,80 @@
+@startuml
+skinparam backgroundColor white
+skinparam classAttributeIconSize 0
+skinparam linetype ortho
+skinparam shadowing false
+hide empty members
+skinparam monochrome true
+skinparam defaultFontName Segoe UI
+skinparam defaultFontSize 12
+skinparam roundCorner 0
+skinparam ArrowColor black
+skinparam ClassBorderColor black
+skinparam ClassBackgroundColor white
+
+title Aplicación - Errores y ejecución transaccional
+
+package "Dominio" {
+  class ErrorDeDominio
+  class TransicionInvalida
+  class PublicacionIncompleta
+  class CupoAgotado
+  class FranjaNoDisponible
+  class SaldoInsuficiente
+  class PermisoDenegado
+  class SolicitudNoPermitida
+  class CalificacionNoPermitida
+  class ValorInvalido
+  class EventoContratacion
+}
+
+package "Aplicación" {
+  class ErrorDeAplicacion
+  class RecursoNoEncontrado
+  class UsuarioInexistente
+  class PerfilYaExiste
+  class OperacionNoPermitida
+  class ConflictoDeConcurrencia
+
+  class EjecutorTransaccional {
+    -unidadDeTrabajo: UnidadDeTrabajo
+    -publicador: PublicadorEventos
+    --
+    +ejecutar(accion: Supplier<ResultadoTransaccion<T>>): T
+    +consultar(consulta: Supplier<T>): T
+  }
+  class ResultadoTransaccion<T> {
+    -valor: T
+    -eventos: List<EventoContratacion>
+  }
+  interface UnidadDeTrabajo {
+    +ejecutar(accion: Supplier<T>): T
+  }
+  interface PublicadorEventos {
+    +publicar(evento: EventoContratacion): void
+  }
+}
+
+ErrorDeDominio <|-- TransicionInvalida
+ErrorDeDominio <|-- PublicacionIncompleta
+ErrorDeDominio <|-- CupoAgotado
+ErrorDeDominio <|-- FranjaNoDisponible
+ErrorDeDominio <|-- SaldoInsuficiente
+ErrorDeDominio <|-- PermisoDenegado
+ErrorDeDominio <|-- SolicitudNoPermitida
+ErrorDeDominio <|-- CalificacionNoPermitida
+ErrorDeDominio <|-- ValorInvalido
+
+ErrorDeAplicacion <|-- RecursoNoEncontrado
+ErrorDeAplicacion <|-- UsuarioInexistente
+ErrorDeAplicacion <|-- PerfilYaExiste
+ErrorDeAplicacion <|-- OperacionNoPermitida
+ErrorDeAplicacion <|-- ConflictoDeConcurrencia
+
+EjecutorTransaccional --> UnidadDeTrabajo
+EjecutorTransaccional --> PublicadorEventos
+EjecutorTransaccional ..> ResultadoTransaccion
+ResultadoTransaccion --> "0..*" EventoContratacion
+PublicadorEventos ..> EventoContratacion
+
+@enduml

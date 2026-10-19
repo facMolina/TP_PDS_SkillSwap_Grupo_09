@@ -1,0 +1,181 @@
+@startuml
+skinparam backgroundColor white
+skinparam classAttributeIconSize 0
+skinparam linetype ortho
+skinparam shadowing false
+hide empty members
+skinparam monochrome true
+skinparam defaultFontName Segoe UI
+skinparam defaultFontSize 12
+skinparam roundCorner 0
+skinparam ArrowColor black
+skinparam ClassBorderColor black
+skinparam ClassBackgroundColor white
+
+title Aplicación - Eventos, notificaciones e identidad
+
+package "Dominio" {
+  class Notificacion {
+    -id: Long
+    -destinatarioId: UsuarioId
+    -tipo: TipoEvento
+    -mensaje: String
+    -fecha: Instant
+    -leida: boolean
+    --
+    +marcarLeida(usuario: UsuarioId): void
+    +perteneceA(usuario: UsuarioId): boolean
+  }
+  class EventoContratacion
+}
+
+package "Aplicación" {
+  interface PublicadorEventos {
+    +publicar(evento: EventoContratacion): void
+  }
+  interface ObservadorEventos {
+    +alRecibir(evento: EventoContratacion): void
+  }
+  class BusEventos {
+    -observadores: List<ObservadorEventos>
+    --
+    +suscribir(observador: ObservadorEventos): void
+    +publicar(evento: EventoContratacion): void
+  }
+  class NotificadorDeEventos {
+    -perfiles: PerfilRepositorio
+    -fabricaCanales: FabricaCanales
+    -generadorMensajes: GeneradorMensajes
+    --
+    +alRecibir(evento: EventoContratacion): void
+  }
+  class GeneradorMensajes {
+    +mensajePara(evento: EventoContratacion): String
+  }
+  class FabricaCanales {
+    -canalEmail: CanalEmail
+    -canalPush: CanalPush
+    -canalInterno: CanalInterno
+    --
+    +crear(canal: CanalPreferido): CanalNotificacion
+  }
+  interface CanalNotificacion {
+    +enviar(notificacion: Notificacion, destino: Perfil): void
+  }
+  class CanalEmail {
+    -enviador: EnviadorEmail
+    --
+    +enviar(notificacion: Notificacion, destino: Perfil): void
+  }
+  class CanalPush {
+    -enviador: EnviadorPush
+    --
+    +enviar(notificacion: Notificacion, destino: Perfil): void
+  }
+  class CanalInterno {
+    -repositorio: NotificacionRepositorio
+    --
+    +enviar(notificacion: Notificacion, destino: Perfil): void
+  }
+  interface EnviadorEmail {
+    +enviarCorreo(destino: String, asunto: String, cuerpo: String): void
+  }
+  interface EnviadorPush {
+    +enviarPush(destinatario: UsuarioId, titulo: String, cuerpo: String): void
+  }
+  interface ServicioIdentidad {
+    +existeUsuario(usuario: UsuarioId): boolean
+  }
+  interface NotificacionRepositorio {
+    +guardar(notificacion: Notificacion): Notificacion
+    +buscarPorId(id: Long): Optional<Notificacion>
+    +listarPorDestinatario(usuario: UsuarioId, pagina: SolicitudPagina): Pagina<Notificacion>
+  }
+  interface PerfilRepositorio {
+    +buscarPorUsuario(usuario: UsuarioId): Optional<Perfil>
+  }
+  class ListarNotificaciones {
+    +ejecutar(comando: ListadoNotificaciones): Pagina<Notificacion>
+  }
+  class MarcarNotificacionLeida {
+    +ejecutar(comando: MarcarLeidaComando): void
+  }
+}
+
+package "Infraestructura" {
+  class AdaptadorEmailSimulado {
+    -cliente: ClienteCorreoSimulado
+    --
+    +enviarCorreo(destino: String, asunto: String, cuerpo: String): void
+  }
+  class ClienteCorreoSimulado {
+    +enviar(para: String, asunto: String, texto: String, esHtml: boolean): void
+  }
+  class AdaptadorPushSimulado {
+    -servicio: ServicioPushSimulado
+    --
+    +enviarPush(destinatario: UsuarioId, titulo: String, cuerpo: String): void
+  }
+  class ServicioPushSimulado {
+    +notificar(dispositivo: String, titulo: String, texto: String): void
+  }
+  class AdaptadorIdentidadSimulada {
+    -servicio: ServicioIdentidadSimulado
+    --
+    +existeUsuario(usuario: UsuarioId): boolean
+  }
+  class ServicioIdentidadSimulado {
+    +usuarioActivo(): String
+    +existe(identificador: String): boolean
+  }
+}
+
+PublicadorEventos <|.. BusEventos
+BusEventos o-- "0..*" ObservadorEventos
+ObservadorEventos <|.. NotificadorDeEventos
+NotificadorDeEventos --> "1" PerfilRepositorio
+NotificadorDeEventos --> "1" FabricaCanales
+NotificadorDeEventos --> "1" GeneradorMensajes
+NotificadorDeEventos ..> Notificacion : crea
+FabricaCanales ..> CanalNotificacion : devuelve
+FabricaCanales --> "1" CanalEmail
+FabricaCanales --> "1" CanalPush
+FabricaCanales --> "1" CanalInterno
+CanalNotificacion <|.. CanalEmail
+CanalNotificacion <|.. CanalPush
+CanalNotificacion <|.. CanalInterno
+CanalEmail --> "1" EnviadorEmail
+CanalPush --> "1" EnviadorPush
+CanalInterno --> "1" NotificacionRepositorio
+BusEventos ..> EventoContratacion
+ObservadorEventos ..> EventoContratacion
+
+EnviadorEmail <|.. AdaptadorEmailSimulado
+AdaptadorEmailSimulado --> "1" ClienteCorreoSimulado
+EnviadorPush <|.. AdaptadorPushSimulado
+AdaptadorPushSimulado --> "1" ServicioPushSimulado
+ServicioIdentidad <|.. AdaptadorIdentidadSimulada
+AdaptadorIdentidadSimulada --> "1" ServicioIdentidadSimulado
+
+ListarNotificaciones ..> NotificacionRepositorio
+MarcarNotificacionLeida ..> NotificacionRepositorio
+
+note right of ObservadorEventos : Observer
+note right of FabricaCanales : Simple Factory
+note right of CanalNotificacion : Strategy
+note right of EnviadorEmail
+  Adapter
+  Target: EnviadorEmail
+  Adaptee: ClienteCorreoSimulado
+end note
+note right of EnviadorPush
+  Adapter
+  Target: EnviadorPush
+  Adaptee: ServicioPushSimulado
+end note
+note right of ServicioIdentidad
+  Adapter
+  Target: ServicioIdentidad
+  Adaptee: ServicioIdentidadSimulado
+end note
+@enduml

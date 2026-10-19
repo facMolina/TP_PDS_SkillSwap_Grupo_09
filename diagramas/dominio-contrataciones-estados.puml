@@ -1,0 +1,95 @@
+@startuml
+skinparam backgroundColor white
+skinparam classAttributeIconSize 0
+skinparam linetype ortho
+left to right direction
+skinparam shadowing false
+hide empty members
+skinparam monochrome true
+skinparam defaultFontName Segoe UI
+skinparam defaultFontSize 12
+skinparam roundCorner 0
+skinparam ArrowColor black
+skinparam ClassBorderColor black
+skinparam ClassBackgroundColor white
+
+title Dominio - Estados de la contratación
+
+interface EstadoContratacion {
+  +getNombre(): String
+  +aceptar(contratacion: Contratacion, ctx: ContextoAccion): void
+  +rechazar(contratacion: Contratacion, ctx: ContextoAccion, motivo: String): void
+  +confirmarPago(contratacion: Contratacion, ctx: ContextoAccion): void
+  +iniciar(contratacion: Contratacion, ctx: ContextoAccion): void
+  +completar(contratacion: Contratacion, ctx: ContextoAccion): SkillCoins
+  +cancelar(contratacion: Contratacion, ctx: ContextoAccion, politica: PoliticaCancelacion, motivo: String): ResultadoCancelacion
+  +proponerReprogramacion(contratacion: Contratacion, ctx: ContextoAccion, nuevaFranja: FranjaHoraria): void
+  +responderReprogramacion(contratacion: Contratacion, ctx: ContextoAccion, acepta: boolean): void
+  +estaComprometida(): boolean
+}
+abstract class EstadoContratacionBase {
+  +aceptar(contratacion: Contratacion, ctx: ContextoAccion): void
+  +rechazar(contratacion: Contratacion, ctx: ContextoAccion, motivo: String): void
+  +confirmarPago(contratacion: Contratacion, ctx: ContextoAccion): void
+  +iniciar(contratacion: Contratacion, ctx: ContextoAccion): void
+  +completar(contratacion: Contratacion, ctx: ContextoAccion): SkillCoins
+  +cancelar(contratacion: Contratacion, ctx: ContextoAccion, politica: PoliticaCancelacion, motivo: String): ResultadoCancelacion
+  +proponerReprogramacion(contratacion: Contratacion, ctx: ContextoAccion, nuevaFranja: FranjaHoraria): void
+  +responderReprogramacion(contratacion: Contratacion, ctx: ContextoAccion, acepta: boolean): void
+  +estaComprometida(): boolean
+}
+class EstadoPendiente {
+  +getNombre(): String
+  +aceptar(contratacion: Contratacion, ctx: ContextoAccion): void
+  +rechazar(contratacion: Contratacion, ctx: ContextoAccion, motivo: String): void
+}
+class EstadoAceptada {
+  +getNombre(): String
+  +confirmarPago(contratacion: Contratacion, ctx: ContextoAccion): void
+  +cancelar(contratacion: Contratacion, ctx: ContextoAccion, politica: PoliticaCancelacion, motivo: String): ResultadoCancelacion
+  +proponerReprogramacion(contratacion: Contratacion, ctx: ContextoAccion, nuevaFranja: FranjaHoraria): void
+  +responderReprogramacion(contratacion: Contratacion, ctx: ContextoAccion, acepta: boolean): void
+  +estaComprometida(): boolean
+}
+class EstadoConfirmada {
+  +getNombre(): String
+  +iniciar(contratacion: Contratacion, ctx: ContextoAccion): void
+  +cancelar(contratacion: Contratacion, ctx: ContextoAccion, politica: PoliticaCancelacion, motivo: String): ResultadoCancelacion
+  +proponerReprogramacion(contratacion: Contratacion, ctx: ContextoAccion, nuevaFranja: FranjaHoraria): void
+  +responderReprogramacion(contratacion: Contratacion, ctx: ContextoAccion, acepta: boolean): void
+  +estaComprometida(): boolean
+}
+class EstadoEnCurso {
+  +getNombre(): String
+  +completar(contratacion: Contratacion, ctx: ContextoAccion): SkillCoins
+  +estaComprometida(): boolean
+}
+class EstadoCompletada {
+  +getNombre(): String
+}
+class EstadoRechazada {
+  +getNombre(): String
+}
+class EstadoCancelada {
+  +getNombre(): String
+}
+class Contratacion
+class ContextoAccion
+class ResultadoCancelacion
+class PoliticaCancelacion
+
+Contratacion --> "1" EstadoContratacion : estadoActual
+EstadoContratacion <|.. EstadoContratacionBase
+EstadoContratacionBase <|-- EstadoPendiente
+EstadoContratacionBase <|-- EstadoAceptada
+EstadoContratacionBase <|-- EstadoConfirmada
+EstadoContratacionBase <|-- EstadoEnCurso
+EstadoContratacionBase <|-- EstadoCompletada
+EstadoContratacionBase <|-- EstadoRechazada
+EstadoContratacionBase <|-- EstadoCancelada
+EstadoContratacion ..> ContextoAccion
+EstadoContratacion ..> ResultadoCancelacion
+EstadoContratacion ..> PoliticaCancelacion
+
+note right of EstadoContratacion : State
+@enduml

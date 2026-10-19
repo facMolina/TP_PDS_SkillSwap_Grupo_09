@@ -1,0 +1,101 @@
+@startuml
+skinparam backgroundColor white
+skinparam classAttributeIconSize 0
+skinparam linetype ortho
+skinparam shadowing false
+hide empty members
+skinparam monochrome true
+skinparam defaultFontName Segoe UI
+skinparam defaultFontSize 12
+skinparam roundCorner 0
+skinparam ArrowColor black
+skinparam ClassBorderColor black
+skinparam ClassBackgroundColor white
+
+title Infraestructura - Composición y servicios externos
+
+package "Aplicación" {
+  class ModuloAplicacion {
+    +bus: BusEventos
+    +transaccion: EjecutorTransaccional
+    --
+    +crearPerfil: CrearPerfil
+    +crearBorrador: CrearBorrador
+    +aceptar: AceptarContratacion
+    +pagar: PagarContratacion
+    +vencer: VencerContratacionesSinPago
+    +demás casos de uso
+  }
+  class Puertos {
+    -perfiles: PerfilRepositorio
+    -publicaciones: PublicacionRepositorio
+    -contrataciones: ContratacionRepositorio
+    -billeteras: BilleteraRepositorio
+    -calificaciones: CalificacionRepositorio
+    -notificaciones: NotificacionRepositorio
+    -catalogo: CatalogoRepositorio
+    -consulta: ConsultaPublicaciones
+    -identidad: ServicioIdentidad
+    -email: EnviadorEmail
+    -push: EnviadorPush
+    -unidadDeTrabajo: UnidadDeTrabajo
+  }
+  class ObservadorTransaccional {
+    -unidadDeTrabajo: UnidadDeTrabajo
+    -observador: ObservadorEventos
+    --
+    +alRecibir(evento: EventoContratacion): void
+  }
+  interface ObservadorEventos
+  class VencerContratacionesSinPago {
+    +ejecutar(): int
+  }
+}
+
+package "Infraestructura" {
+  class ContenedorSkillSwap {
+    +puertos: Puertos
+    +aplicacion: ModuloAplicacion
+    +correo: ClienteCorreoSimulado
+    +push: ServicioPushSimulado
+    +identidad: ServicioIdentidadSimulado
+    +planificador: PlanificadorVencimientos
+    --
+    +close(): void
+  }
+  class PlanificadorVencimientos {
+    -caso: VencerContratacionesSinPago
+    -intervalo: Duration
+    --
+    +iniciar(): void
+    +ejecutarCiclo(): void
+    +close(): void
+  }
+  class AdaptadorEmailSimulado
+  class AdaptadorPushSimulado
+  class AdaptadorIdentidadSimulada
+  class ClienteCorreoSimulado
+  class ServicioPushSimulado
+  class ServicioIdentidadSimulado
+}
+
+ContenedorSkillSwap --> "1" ModuloAplicacion
+ContenedorSkillSwap --> "1" Puertos
+ContenedorSkillSwap --> "1" PlanificadorVencimientos
+ContenedorSkillSwap ..> AdaptadorEmailSimulado : crea
+ContenedorSkillSwap ..> AdaptadorPushSimulado : crea
+ContenedorSkillSwap ..> AdaptadorIdentidadSimulada : crea
+ModuloAplicacion ..> Puertos
+ModuloAplicacion --> "1" ObservadorTransaccional
+ObservadorEventos <|.. ObservadorTransaccional
+ObservadorTransaccional --> "1" ObservadorEventos : decora
+PlanificadorVencimientos --> "1" VencerContratacionesSinPago
+ModuloAplicacion --> "1" VencerContratacionesSinPago
+AdaptadorEmailSimulado --> "1" ClienteCorreoSimulado
+AdaptadorPushSimulado --> "1" ServicioPushSimulado
+AdaptadorIdentidadSimulada --> "1" ServicioIdentidadSimulado
+
+note right of ObservadorTransaccional : Decorator
+note right of PlanificadorVencimientos : Scheduler
+note right of ContenedorSkillSwap : Composition Root
+@enduml

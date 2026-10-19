@@ -1,0 +1,143 @@
+@startuml
+skinparam backgroundColor white
+skinparam classAttributeIconSize 0
+skinparam linetype ortho
+left to right direction
+skinparam shadowing false
+hide empty members
+skinparam monochrome true
+skinparam defaultFontName Segoe UI
+skinparam defaultFontSize 12
+skinparam roundCorner 0
+skinparam ArrowColor black
+skinparam ClassBorderColor black
+skinparam ClassBackgroundColor white
+
+title Aplicación - Contrataciones, calificaciones y billetera
+
+package "Contrataciones" {
+  class SolicitarContratacion {
+    +ejecutar(comando: SolicitarComando): ContratacionVista
+  }
+  class AceptarContratacion {
+    +ejecutar(comando: ContratacionComando): ContratacionVista
+  }
+  class RechazarContratacion {
+    +ejecutar(comando: RechazarComando): ContratacionVista
+  }
+  class PagarContratacion {
+    +ejecutar(comando: ContratacionComando): ContratacionVista
+  }
+  class IniciarContratacion {
+    +ejecutar(comando: ContratacionComando): ContratacionVista
+  }
+  class CompletarContratacion {
+    +ejecutar(comando: ContratacionComando): ContratacionVista
+  }
+  class CancelarContratacion {
+    +ejecutar(comando: CancelarComando): ContratacionVista
+  }
+  class ProponerReprogramacion {
+    +ejecutar(comando: ReprogramarComando): ContratacionVista
+  }
+  class ResponderReprogramacion {
+    +ejecutar(comando: ResponderReprogramacionComando): ContratacionVista
+  }
+  class VencerContratacionesSinPago {
+    +ejecutar(comando: Duration): int
+  }
+  class ConsultarComprobante {
+    +ejecutar(comando: ContratacionComando): Comprobante
+  }
+}
+package "Calificaciones" {
+  class CalificarContratacion {
+    +ejecutar(comando: CalificarComando): CalificacionVista
+  }
+}
+package "Billetera" {
+  class ConsultarBilletera {
+    +ejecutar(comando: ConsultaBilletera): BilleteraVista
+  }
+}
+
+package "Puertos de salida" {
+  interface PerfilRepositorio {
+    +guardar(perfil: Perfil): Perfil
+    +buscarPorUsuario(usuario: UsuarioId): Optional<Perfil>
+    +existePorUsuario(usuario: UsuarioId): boolean
+  }
+  interface PublicacionRepositorio {
+    +guardar(publicacion: Publicacion): Publicacion
+    +buscarPorId(id: Long): Optional<Publicacion>
+    +buscarVigentesPorAutor(autor: UsuarioId): List<Publicacion>
+  }
+  interface ContratacionRepositorio {
+    +guardar(contratacion: Contratacion): Contratacion
+    +buscarPorId(id: Long): Optional<Contratacion>
+    +existenComprometidasDe(usuario: UsuarioId): boolean
+    +existenComprometidasDePublicacion(publicacionId: Long): boolean
+    +buscarPendientesDePublicacion(publicacionId: Long): List<Contratacion>
+    +buscarAceptadasSinPagoDesde(limite: Instant): List<Contratacion>
+    +historialResumido(usuario: UsuarioId, maximo: int): List<Contratacion>
+  }
+  interface BilleteraRepositorio {
+    +guardar(billetera: Billetera, movimientos: List<MovimientoCreditos>): void
+    +buscarPorUsuario(usuario: UsuarioId): Optional<Billetera>
+    +listarMovimientos(usuario: UsuarioId, pagina: SolicitudPagina): Pagina<MovimientoCreditos>
+  }
+  interface CalificacionRepositorio {
+    +guardar(calificacion: Calificacion): Calificacion
+    +existe(contratacionId: Long, autor: UsuarioId): boolean
+  }
+  interface PublicadorEventos {
+    +publicar(evento: EventoContratacion): void
+  }
+  interface UnidadDeTrabajo {
+    +ejecutar(accion: Supplier<T>): T
+  }
+}
+
+class FabricaPoliticaCancelacion
+SolicitarContratacion ..> PublicacionRepositorio
+SolicitarContratacion ..> PerfilRepositorio
+SolicitarContratacion ..> ContratacionRepositorio
+SolicitarContratacion ..> PublicadorEventos
+AceptarContratacion ..> ContratacionRepositorio
+AceptarContratacion ..> PublicacionRepositorio
+AceptarContratacion ..> PublicadorEventos
+RechazarContratacion ..> ContratacionRepositorio
+RechazarContratacion ..> PublicadorEventos
+PagarContratacion ..> ContratacionRepositorio
+PagarContratacion ..> BilleteraRepositorio
+PagarContratacion ..> PublicadorEventos
+IniciarContratacion ..> ContratacionRepositorio
+CompletarContratacion ..> ContratacionRepositorio
+CompletarContratacion ..> BilleteraRepositorio
+CompletarContratacion ..> PublicadorEventos
+CancelarContratacion ..> ContratacionRepositorio
+CancelarContratacion ..> PublicacionRepositorio
+CancelarContratacion ..> BilleteraRepositorio
+CancelarContratacion ..> FabricaPoliticaCancelacion
+CancelarContratacion ..> PublicadorEventos
+ProponerReprogramacion ..> ContratacionRepositorio
+ProponerReprogramacion ..> PublicacionRepositorio
+ProponerReprogramacion ..> PublicadorEventos
+ResponderReprogramacion ..> ContratacionRepositorio
+ResponderReprogramacion ..> PublicacionRepositorio
+ResponderReprogramacion ..> PublicadorEventos
+VencerContratacionesSinPago ..> ContratacionRepositorio
+VencerContratacionesSinPago ..> PublicacionRepositorio
+VencerContratacionesSinPago ..> PublicadorEventos
+ConsultarComprobante ..> ContratacionRepositorio
+CalificarContratacion ..> ContratacionRepositorio
+CalificarContratacion ..> CalificacionRepositorio
+CalificarContratacion ..> PerfilRepositorio
+ConsultarBilletera ..> BilleteraRepositorio
+
+note as NotaCasosDeUso
+  Los casos de uso que modifican datos se ejecutan dentro de UnidadDeTrabajo.
+  Cada caso de uso define su comando y su vista como records de su paquete.
+end note
+note right of FabricaPoliticaCancelacion : Simple Factory
+@enduml

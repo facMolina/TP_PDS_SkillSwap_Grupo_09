@@ -1,0 +1,142 @@
+@startuml
+skinparam backgroundColor white
+skinparam classAttributeIconSize 0
+skinparam linetype polyline
+skinparam shadowing false
+hide empty members
+skinparam monochrome true
+skinparam defaultFontName Segoe UI
+skinparam defaultFontSize 12
+skinparam roundCorner 0
+skinparam ArrowColor black
+skinparam ClassBorderColor black
+skinparam ClassBackgroundColor white
+
+title Infraestructura - Persistencia JPA
+
+left to right direction
+
+package "Aplicación (puertos)" {
+  interface UnidadDeTrabajo {
+    +ejecutar(accion: Supplier<T>): T
+  }
+  interface PerfilRepositorio
+  interface PublicacionRepositorio
+  interface ContratacionRepositorio
+  interface BilleteraRepositorio
+  interface CalificacionRepositorio
+  interface NotificacionRepositorio
+  interface CatalogoRepositorio
+  interface ConsultaPublicaciones
+}
+
+package "Infraestructura" {
+  class ContextoPersistencia {
+    -vinculado: ThreadLocal<EntityManager>
+    --
+    +hayUnidadActiva(): boolean
+    +entityManager(): EntityManager
+  }
+  class UnidadDeTrabajoJpa {
+    -fabrica: EntityManagerFactory
+    -contexto: ContextoPersistencia
+    --
+    +ejecutar(accion: Supplier<T>): T
+  }
+  class TraductorExcepciones {
+    +{static} traducir(error: RuntimeException): RuntimeException
+  }
+  abstract class RepositorioJpa {
+    #entityManager(): EntityManager
+    #sincronizar(): void
+  }
+  class PerfilRepositorioJpa
+  class PublicacionRepositorioJpa
+  class ContratacionRepositorioJpa
+  class BilleteraRepositorioJpa
+  class CalificacionRepositorioJpa
+  class NotificacionRepositorioJpa
+  class CatalogoRepositorioJpa
+  class ConsultaPublicacionesJpa {
+    -reloj: Clock
+  }
+  class PerfilMapeador
+  class PublicacionMapeador
+  class ContratacionMapeador
+  class BilleteraMapeador
+  class CalificacionMapeador
+  class NotificacionMapeador
+  class CatalogoMapeador
+  class FabricaPersistencia {
+    +{static} crear(configuracion: ConfiguracionBaseDatos): EntityManagerFactory
+  }
+  class MigradorBaseDatos {
+    +{static} migrar(configuracion: ConfiguracionBaseDatos): void
+  }
+  class ConfiguracionBaseDatos {
+    -url: String
+    -usuario: String
+    -clave: String
+    --
+    +{static} desdeEntorno(): ConfiguracionBaseDatos
+  }
+}
+
+package "Dominio" {
+  class Perfil
+  class Publicacion
+  class Contratacion
+  class InstantaneaPerfil
+  class InstantaneaPublicacion
+  class InstantaneaContratacion
+}
+
+UnidadDeTrabajo <|.. UnidadDeTrabajoJpa
+UnidadDeTrabajoJpa --> "1" ContextoPersistencia
+UnidadDeTrabajoJpa ..> TraductorExcepciones
+RepositorioJpa --> "1" ContextoPersistencia
+RepositorioJpa ..> TraductorExcepciones
+
+RepositorioJpa <|-- PerfilRepositorioJpa
+RepositorioJpa <|-- PublicacionRepositorioJpa
+RepositorioJpa <|-- ContratacionRepositorioJpa
+RepositorioJpa <|-- BilleteraRepositorioJpa
+RepositorioJpa <|-- CalificacionRepositorioJpa
+RepositorioJpa <|-- NotificacionRepositorioJpa
+RepositorioJpa <|-- CatalogoRepositorioJpa
+RepositorioJpa <|-- ConsultaPublicacionesJpa
+
+PerfilRepositorio <|.. PerfilRepositorioJpa
+PublicacionRepositorio <|.. PublicacionRepositorioJpa
+ContratacionRepositorio <|.. ContratacionRepositorioJpa
+BilleteraRepositorio <|.. BilleteraRepositorioJpa
+CalificacionRepositorio <|.. CalificacionRepositorioJpa
+NotificacionRepositorio <|.. NotificacionRepositorioJpa
+CatalogoRepositorio <|.. CatalogoRepositorioJpa
+ConsultaPublicaciones <|.. ConsultaPublicacionesJpa
+
+PerfilRepositorioJpa ..> PerfilMapeador
+PublicacionRepositorioJpa ..> PublicacionMapeador
+ContratacionRepositorioJpa ..> ContratacionMapeador
+BilleteraRepositorioJpa ..> BilleteraMapeador
+CalificacionRepositorioJpa ..> CalificacionMapeador
+NotificacionRepositorioJpa ..> NotificacionMapeador
+PerfilMapeador ..> CatalogoMapeador
+PublicacionMapeador ..> CatalogoMapeador
+
+PerfilMapeador ..> InstantaneaPerfil
+PublicacionMapeador ..> InstantaneaPublicacion
+ContratacionMapeador ..> InstantaneaContratacion
+InstantaneaPerfil ..> Perfil : reconstruir
+InstantaneaPublicacion ..> Publicacion : reconstruir
+InstantaneaContratacion ..> Contratacion : reconstruir
+
+FabricaPersistencia ..> MigradorBaseDatos
+FabricaPersistencia ..> ConfiguracionBaseDatos
+MigradorBaseDatos ..> ConfiguracionBaseDatos
+
+note right of UnidadDeTrabajoJpa : Unit of Work
+note right of PerfilRepositorioJpa : Repository
+note right of PerfilMapeador : Mapper (entidad JPA a dominio)
+note right of InstantaneaPublicacion : Memento
+@enduml

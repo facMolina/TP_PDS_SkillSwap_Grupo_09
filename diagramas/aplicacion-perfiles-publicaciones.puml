@@ -1,0 +1,170 @@
+@startuml
+skinparam backgroundColor white
+skinparam classAttributeIconSize 0
+skinparam linetype ortho
+left to right direction
+skinparam shadowing false
+hide empty members
+skinparam monochrome true
+skinparam defaultFontName Segoe UI
+skinparam defaultFontSize 12
+skinparam roundCorner 0
+skinparam ArrowColor black
+skinparam ClassBorderColor black
+skinparam ClassBackgroundColor white
+
+title Aplicación - Perfiles, publicaciones y búsqueda
+
+package "Perfiles" {
+  class CrearPerfil {
+    +ejecutar(comando: CrearPerfilComando): PerfilVista
+  }
+  class ActualizarPerfil {
+    +ejecutar(comando: ActualizarPerfilComando): PerfilVista
+  }
+  class ConsultarPerfilPublico {
+    +ejecutar(comando: UsuarioId): PerfilPublicoVista
+  }
+  class DarDeBajaPerfil {
+    +ejecutar(comando: DarDeBajaComando): void
+  }
+}
+package "Publicaciones" {
+  class CrearBorrador {
+    +ejecutar(comando: CrearBorradorComando): PublicacionVista
+  }
+  class EditarBorrador {
+    +ejecutar(comando: EditarBorradorComando): PublicacionVista
+  }
+  class AgregarPromocion {
+    +ejecutar(comando: AgregarPromocionComando): PublicacionVista
+  }
+  class CambiarEstadoPublicacion {
+    +ejecutar(comando: CambiarEstadoComando): PublicacionVista
+  }
+}
+package "Búsqueda" {
+  class BuscarPublicaciones {
+    +ejecutar(comando: BusquedaConsulta): Pagina<PublicacionResumen>
+  }
+  class RecomendarPublicaciones {
+    +ejecutar(comando: RecomendacionConsulta): Pagina<PublicacionResumen>
+  }
+}
+
+package "Puertos de salida" {
+  interface PerfilRepositorio {
+    +guardar(perfil: Perfil): Perfil
+    +buscarPorUsuario(usuario: UsuarioId): Optional<Perfil>
+    +existePorUsuario(usuario: UsuarioId): boolean
+  }
+  interface PublicacionRepositorio {
+    +guardar(publicacion: Publicacion): Publicacion
+    +buscarPorId(id: Long): Optional<Publicacion>
+    +buscarVigentesPorAutor(autor: UsuarioId): List<Publicacion>
+  }
+  interface ContratacionRepositorio {
+    +guardar(contratacion: Contratacion): Contratacion
+    +buscarPorId(id: Long): Optional<Contratacion>
+    +existenComprometidasDe(usuario: UsuarioId): boolean
+    +existenComprometidasDePublicacion(publicacionId: Long): boolean
+    +buscarPendientesDePublicacion(publicacionId: Long): List<Contratacion>
+    +buscarAceptadasSinPagoDesde(limite: Instant): List<Contratacion>
+    +historialResumido(usuario: UsuarioId, maximo: int): List<Contratacion>
+  }
+  interface BilleteraRepositorio {
+    +guardar(billetera: Billetera, movimientos: List<MovimientoCreditos>): void
+    +buscarPorUsuario(usuario: UsuarioId): Optional<Billetera>
+    +listarMovimientos(usuario: UsuarioId, pagina: SolicitudPagina): Pagina<MovimientoCreditos>
+  }
+  interface CatalogoRepositorio {
+    +buscarCategoria(id: Long): Optional<Categoria>
+    +buscarHabilidades(ids: Set<Long>): Set<Habilidad>
+  }
+  interface ConsultaPublicaciones {
+    +buscar(filtro: FiltroBusqueda, orden: OrdenBusqueda, pagina: SolicitudPagina): Pagina<PublicacionResumen>
+    +candidatasParaRecomendar(perfil: Perfil): List<CandidataRecomendacion>
+  }
+  interface ServicioIdentidad {
+    +existeUsuario(usuario: UsuarioId): boolean
+  }
+  interface UnidadDeTrabajo {
+    +ejecutar(accion: Supplier<T>): T
+  }
+}
+
+class EstrategiaRecomendacion
+
+class Pagina<T> {
+  -elementos: List<T>
+  -numero: int
+  -tamanio: int
+  -total: long
+  --
+  +getElementos(): List<T>
+  +getTotal(): long
+}
+class SolicitudPagina {
+  -numero: int
+  -tamanio: int
+}
+class FiltroBusqueda {
+  -texto: String
+  -categoria: Categoria
+  -modalidad: Modalidad
+  -precioMinimo: SkillCoins
+  -precioMaximo: SkillCoins
+  -habilidad: Habilidad
+  -reputacionMinima: double
+}
+enum OrdenBusqueda {
+  RELEVANCIA
+  MEJOR_REPUTACION
+  MENOR_PRECIO
+  MAS_RECIENTE
+}
+class PublicacionResumen {
+  -id: Long
+  -titulo: String
+  -autor: String
+  -precio: SkillCoins
+  -reputacionAutor: double
+}
+
+CrearPerfil ..> PerfilRepositorio
+CrearPerfil ..> BilleteraRepositorio
+CrearPerfil ..> ServicioIdentidad
+ActualizarPerfil ..> PerfilRepositorio
+ActualizarPerfil ..> CatalogoRepositorio
+ConsultarPerfilPublico ..> PerfilRepositorio
+ConsultarPerfilPublico ..> ConsultaPublicaciones
+ConsultarPerfilPublico ..> ContratacionRepositorio
+DarDeBajaPerfil ..> PerfilRepositorio
+DarDeBajaPerfil ..> PublicacionRepositorio
+DarDeBajaPerfil ..> ContratacionRepositorio
+CrearBorrador ..> PublicacionRepositorio
+CrearBorrador ..> PerfilRepositorio
+CrearBorrador ..> CatalogoRepositorio
+EditarBorrador ..> PublicacionRepositorio
+EditarBorrador ..> CatalogoRepositorio
+AgregarPromocion ..> PublicacionRepositorio
+CambiarEstadoPublicacion ..> PublicacionRepositorio
+CambiarEstadoPublicacion ..> ContratacionRepositorio
+BuscarPublicaciones ..> ConsultaPublicaciones
+BuscarPublicaciones ..> CatalogoRepositorio
+RecomendarPublicaciones ..> PerfilRepositorio
+RecomendarPublicaciones ..> ConsultaPublicaciones
+RecomendarPublicaciones ..> EstrategiaRecomendacion
+
+ConsultaPublicaciones ..> FiltroBusqueda
+ConsultaPublicaciones ..> OrdenBusqueda
+ConsultaPublicaciones ..> SolicitudPagina
+ConsultaPublicaciones ..> Pagina
+ConsultaPublicaciones ..> PublicacionResumen
+
+note as NotaCasosDeUso
+  Los casos de uso que modifican datos se ejecutan dentro de UnidadDeTrabajo.
+  Cada caso de uso define su comando y su vista como records de su paquete.
+end note
+note right of EstrategiaRecomendacion : Strategy
+@enduml

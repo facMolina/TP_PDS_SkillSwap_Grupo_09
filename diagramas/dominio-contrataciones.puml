@@ -1,0 +1,149 @@
+@startuml
+skinparam backgroundColor white
+skinparam classAttributeIconSize 0
+skinparam linetype ortho
+skinparam shadowing false
+hide empty members
+skinparam monochrome true
+skinparam defaultFontName Segoe UI
+skinparam defaultFontSize 12
+skinparam roundCorner 0
+skinparam ArrowColor black
+skinparam ClassBorderColor black
+skinparam ClassBackgroundColor white
+
+title Dominio - Contrataciones, calificaciones y eventos
+
+enum EstadoPropuesta {
+  PENDIENTE
+  ACEPTADA
+  RECHAZADA
+}
+enum TipoEvento {
+  SOLICITUD_RECIBIDA
+  SOLICITUD_ACEPTADA
+  SOLICITUD_RECHAZADA
+  PAGO_CONFIRMADO
+  REPROGRAMACION_PROPUESTA
+  REPROGRAMACION_RESUELTA
+  CONTRATACION_CANCELADA
+  SESION_COMPLETADA
+}
+class Contratacion {
+  -id: Long
+  -publicacionId: Long
+  -clienteId: UsuarioId
+  -proveedorId: UsuarioId
+  -mensaje: String
+  -objetivo: String
+  -franja: FranjaHoraria
+  -precioAcordado: SkillCoins
+  -montoRetenido: SkillCoins
+  -tipoPoliticaCancelacion: TipoPoliticaCancelacion
+  -fechaSolicitud: Instant
+  -fechaAceptacion: Instant
+  -propuesta: PropuestaReprogramacion
+  -estadoActual: EstadoContratacion
+  -historial: HistorialTransiciones
+  -eventos: List<EventoContratacion>
+  --
+  +aceptar(ctx: ContextoAccion): void
+  +rechazar(ctx: ContextoAccion, motivo: String): void
+  +confirmarPago(ctx: ContextoAccion): void
+  +iniciar(ctx: ContextoAccion): void
+  +completar(ctx: ContextoAccion): SkillCoins
+  +cancelar(ctx: ContextoAccion, politica: PoliticaCancelacion, motivo: String): ResultadoCancelacion
+  +vencerSinPago(ahora: Instant, plazo: Duration): boolean
+  +proponerReprogramacion(ctx: ContextoAccion, nuevaFranja: FranjaHoraria): void
+  +responderReprogramacion(ctx: ContextoAccion, acepta: boolean): void
+  +generarComprobante(): Comprobante
+  +esParticipante(usuario: UsuarioId): boolean
+  +estaComprometida(): boolean
+  +cambiarEstado(nuevo: EstadoContratacion, ctx: ContextoAccion, motivo: String): void
+  +extraerEventos(): List<EventoContratacion>
+}
+class PropuestaReprogramacion {
+  -propuestaPor: UsuarioId
+  -nuevaFranja: FranjaHoraria
+  -estado: EstadoPropuesta
+  --
+  +aceptar(actor: UsuarioId): void
+  +rechazar(actor: UsuarioId): void
+  +estaPendiente(): boolean
+}
+class ResultadoCancelacion {
+  -reintegroCliente: SkillCoins
+  -pagoProveedor: SkillCoins
+  --
+  +getReintegroCliente(): SkillCoins
+  +getPagoProveedor(): SkillCoins
+}
+class Comprobante {
+  -contratacionId: Long
+  -clienteId: UsuarioId
+  -proveedorId: UsuarioId
+  -monto: SkillCoins
+  -fecha: Instant
+}
+class EventoContratacion {
+  -tipo: TipoEvento
+  -contratacionId: Long
+  -actorId: UsuarioId
+  -destinatarios: List<UsuarioId>
+  -ocurridoEn: Instant
+  --
+  +getTipo(): TipoEvento
+  +getDestinatarios(): List<UsuarioId>
+}
+class Calificacion {
+  -id: Long
+  -contratacionId: Long
+  -autorId: UsuarioId
+  -receptorId: UsuarioId
+  -puntaje: Puntaje
+  -comentario: String
+  -fecha: Instant
+  --
+  +{static} registrar(contratacion: Contratacion, autor: UsuarioId, puntaje: Puntaje, comentario: String, ahora: Instant): Calificacion
+}
+class ContextoAccion {
+  -actor: UsuarioId
+  -ahora: Instant
+  --
+  +getActor(): UsuarioId
+  +getAhora(): Instant
+}
+class EstadoContratacion
+class UsuarioId
+class SkillCoins
+class FranjaHoraria
+class HistorialTransiciones
+class PoliticaCancelacion
+class TipoPoliticaCancelacion
+class Puntaje
+
+Contratacion --> "1" UsuarioId : clienteId
+Contratacion --> "1" UsuarioId : proveedorId
+Contratacion --> "1" FranjaHoraria : franja
+Contratacion --> "1" SkillCoins : precioAcordado
+Contratacion --> "1" TipoPoliticaCancelacion
+Contratacion --> "1" EstadoContratacion : estadoActual
+Contratacion *-- "1" HistorialTransiciones
+Contratacion *-- "0..1" PropuestaReprogramacion
+Contratacion *-- "0..*" EventoContratacion
+Contratacion ..> ResultadoCancelacion : produce
+Contratacion ..> Comprobante : genera
+Contratacion ..> PoliticaCancelacion : usa
+Contratacion ..> ContextoAccion : recibe
+
+EventoContratacion --> "1" TipoEvento
+PropuestaReprogramacion --> "1" EstadoPropuesta
+PropuestaReprogramacion --> "1" FranjaHoraria
+Calificacion ..> Contratacion : verifica
+Calificacion --> "1" Puntaje
+
+note right of EventoContratacion
+  Observer
+  Evento que reciben los observadores
+end note
+@enduml
